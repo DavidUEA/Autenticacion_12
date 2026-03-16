@@ -3,27 +3,52 @@ import { View, Text, StyleSheet, Alert } from 'react-native';
 import { CustomInput } from '../../components/CustomInput';
 import { CustomButton } from '../../components/CustomButton';
 import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 export const LoginScreen = () => {
   const navigation = useNavigation<any>();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Dejamos tu usuario del backend por defecto para probar rápido
+  const [email, setEmail] = useState('david_34@hotmail.es');
+  const [password, setPassword] = useState('password123');
 
-  const onLoginPressed = () => {
-
+  const onLoginPressed = async () => {
       if (email === '' || password === '') {
           Alert.alert("Error", "Por favor ingresa correo y contraseña");
           return;
       }
 
-      navigation.navigate('Home');
-  };
+      try {
+          // 1. Viajamos al servidor para pedir el token (Actividad A)
+          const response = await axios.post('http://10.0.2.2:3000/api/login', {
+              email: email,
+              password: password
+          });
 
+          // 2. Extraemos el "Pase VIP" (Token)
+          const token = response.data.token;
+
+          // 3. ACTIVIDAD D: Guardar el token en la "caja fuerte"
+          await EncryptedStorage.setItem('user_session', token);
+
+          Alert.alert('¡Éxito!', 'Sesión iniciada. Token guardado en bóveda de seguridad.');
+
+          // 4. Navegar a la pantalla principal
+          navigation.navigate('Home');
+
+      } catch (error: any) {
+          // Si el servidor nos rechaza o está apagado
+          if (error.response) {
+              Alert.alert('Error', error.response.data.mensaje);
+          } else {
+              Alert.alert('Error', 'No se pudo conectar. ¿El servidor backend está encendido?');
+          }
+      }
+  };
 
   const onForgotPasswordPressed = () => {
       console.warn('Olvidé contraseña');
-
   };
 
   return (
